@@ -2,18 +2,18 @@ from os.path import split
 import psutil
 import time
 from rich import console
+from rich.columns import Columns
 from rich.console import Console
-from rich.table import Table
+from rich.table import Table, Column
 from rich.live import Live
 from rich.panel import Panel
 
 
 console = Console()
 
-
-def show_ram_cpu_info():
+def show_info():
     table = Table(
-        title="SYSTEM INFO" ,
+        title="CPU-RAM INFO" ,
         width=30 ,
         border_style= "bright_blue" ,
         title_style= "bold green " ,
@@ -22,13 +22,27 @@ def show_ram_cpu_info():
     table.add_column("Usage")
     ram_info = psutil.virtual_memory().percent
     table.add_row("RAM", f"{ram_info}%")
-
     cpu_info = psutil.cpu_percent()
     table.add_row("CPU",f"{cpu_info}%")
 
-    return table
+    disk_table = Table(
+        title= "DISK INFO" ,
+        width=30 ,
+        border_style="yellow" ,
+        title_style= "bold green" ,
+    )
+    disk_table.add_column("Component")
+    disk_table.add_column("Usage")
+    disk_info = psutil.disk_usage("/System/Volumes/Data")
+    disk_table.add_row("TOTAL" , f"{disk_info.total / 1024**3:.2f}GB")
+    disk_table.add_row("USED" , f"{disk_info.used / 1024**3:.2f}GB")
+    disk_table.add_row("FREE" , f"{disk_info.free / 1024**3:.2f}GB")
+    disk_table.add_row("USAGE" , f"{disk_info.percent}%")
 
 
+
+
+    return Columns([table , disk_table] , padding=2)
 
 
 def show_network_info():
@@ -52,11 +66,12 @@ def conver_bytes(size):
 
 
 def main():
-    with Live(show_ram_cpu_info(),refresh_per_second=1) as live:
+    with Live(show_info(),refresh_per_second=1) as live:
         while True:
             time.sleep(3)
-            live.update(show_ram_cpu_info())
+            live.update(show_info())
 
 
 
-main()
+if __name__ == "__main__":
+    main()
