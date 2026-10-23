@@ -65,15 +65,6 @@ This project was developed to strengthen practical skills in:
 - Real-time terminal interfaces
 - Fundamentals of system administration and DevOps
 
-## 🔮 Future Improvements
-
-- [ ] Export system metrics to CSV or JSON
-- [ ] Add process-level monitoring
-- [ ] Implement CPU and RAM usage alerts
-- [ ] Add historical performance graphs
-- [ ] Integrate Prometheus and Grafana
-- [ ] Add Docker support
-- [ ] Create a configurable monitoring dashboard
 
 ## 👨‍💻 Author
 
