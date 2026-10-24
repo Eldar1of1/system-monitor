@@ -1,7 +1,7 @@
 import psutil
 import time
 from rich.columns import Columns
-from rich.table import Table, Column
+from rich.table import Table
 from rich.live import Live
 import socket
 from rich.console import Console
@@ -53,6 +53,8 @@ def show_info():
         border_style="light_sky_blue1" ,
         title_style="bright_white"
     )
+
+
     def get_ip():
         ip_addr = psutil.net_if_addrs()
         for addr in ip_addr.get("en0", []):
