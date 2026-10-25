@@ -54,6 +54,34 @@ def show_info():
         title_style="bright_white"
     )
 
+    pid_table = Table(
+        title="PID INFO",
+        width=45,
+        border_style="light_sky_blue1",
+        title_style="bright_white"
+    )
+
+    pid_table.add_column("PID")
+    pid_table.add_column("NAME")
+    pid_table.add_column("RAM USAGE")
+
+    def show_pid_info():
+        processes = []
+        for proc in psutil.process_iter():
+            try:
+                name = proc.name()
+                pid = proc.pid
+                ram = proc.memory_info().rss / 1024 ** 2  # MiB
+                processes.append((name, pid, ram))
+            except(psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        processes.sort(key=lambda x: x[2], reverse=True)
+
+        for name, pid, ram in processes[:10]:
+            pid_table.add_row(name, str(pid), f"{ram/1024:.2f}GB")
+
+    show_pid_info()
+
 
     def get_ip():
         ip_addr = psutil.net_if_addrs()
@@ -68,6 +96,7 @@ def show_info():
         after = psutil.net_io_counters().bytes_recv
         total_speed = (after - before) / 3 / 1_000_000
         return f"{total_speed:.2f} Mb/s"
+
     net = psutil.net_io_counters()
 
     net_table.add_column("COMPONENT")
@@ -77,8 +106,10 @@ def show_info():
     net_table.add_row("BYTES SENT" , f"{conver_bytes(net.bytes_sent)}")
     net_table.add_row("BYTES RECEIVED" , f"{conver_bytes(net.bytes_recv)}")
 
+    def show_board():
+        pass
 
-    return Group(header,Columns([table , disk_table , net_table] , padding=2))
+    return Group(header,Columns([table , disk_table , net_table , pid_table] , padding=2))
 
 
 def conver_bytes(size):
