@@ -1,3 +1,5 @@
+
+
 import psutil
 import time
 from rich.columns import Columns
@@ -12,8 +14,24 @@ from rich.console import Group
 console = Console()
 
 
-def show_info():
+def usage_bar(percent, width=20):
+    filled = round(percent / 100 * width)
+    empty = width - filled
 
+    if percent < 60:
+        color = "green"
+    elif percent < 80:
+        color = "yellow"
+    else:
+        color = "red"
+
+    return (f"[{color}]{'█' * filled}[/]"
+            f"[dim]{"░" * empty} [/]"
+            f"[bold white]{percent:.1f}%"
+            )
+
+def show_info():
+    top = Columns([])
     header = Panel(
         Align.center("[bright_white]System Information[/bright_white]"),
         border_style="bright_black",
@@ -21,21 +39,41 @@ def show_info():
     )
 
     table = Table(
-        title="CPU-RAM INFO" ,
-        width=30 ,
+        title="CPU" ,
+        expand= True ,
         border_style= "light_sky_blue1" ,
         title_style= "bright_white" ,
     )
+
+    ram_table = Table(
+        title="RAM" ,
+        expand= True,
+        border_style= "light_sky_blue1" ,
+        title_style= "bright_white"  ,
+    )
+
+    def show_ram():
+        ram_info = psutil.virtual_memory().percent
+        return ram_info
+
+    def show_cpu():
+        cpu_info = psutil.cpu_percent()
+        return cpu_info
+
+
     table.add_column("Component")
     table.add_column("Usage")
-    ram_info = psutil.virtual_memory().percent
-    table.add_row("RAM", f"{ram_info}%")
-    cpu_info = psutil.cpu_percent()
-    table.add_row("CPU",f"{cpu_info}%")
+
+    ram_table.add_column("Component")
+    ram_table.add_column("Usage")
+
+    ram_table.add_row("RAM" , usage_bar(show_ram()))
+
+    table.add_row("CPU",usage_bar(show_cpu()))
 
     disk_table = Table(
         title= "DISK INFO" ,
-        width=30 ,
+        expand= True,
         border_style="light_sky_blue1" ,
         title_style= "bright_white" ,
     )
@@ -45,24 +83,24 @@ def show_info():
     disk_table.add_row("TOTAL" , f"{disk_info.total / 1024**3:.2f}GB")
     disk_table.add_row("USED" , f"{disk_info.used / 1024**3:.2f}GB")
     disk_table.add_row("FREE" , f"{disk_info.free / 1024**3:.2f}GB")
-    disk_table.add_row("USAGE" , f"{disk_info.percent}%")
+    disk_table.add_row("USAGE" , usage_bar(disk_info.percent))
 
     net_table = Table(
         title="NETWORK INFO" ,
-        width=45,
+        expand= True,
         border_style="light_sky_blue1" ,
         title_style="bright_white"
     )
 
     pid_table = Table(
         title="PID INFO",
-        width=45,
+        expand=True,
         border_style="light_sky_blue1",
         title_style="bright_white"
     )
 
-    pid_table.add_column("PID")
     pid_table.add_column("NAME")
+    pid_table.add_column("PID")
     pid_table.add_column("RAM USAGE")
 
     def show_pid_info():
@@ -106,10 +144,31 @@ def show_info():
     net_table.add_row("BYTES SENT" , f"{conver_bytes(net.bytes_sent)}")
     net_table.add_row("BYTES RECEIVED" , f"{conver_bytes(net.bytes_recv)}")
 
-    def show_board():
-        pass
 
-    return Group(header,Columns([table , disk_table , net_table , pid_table] , padding=2))
+
+    def show_board():
+        top = Table.grid(expand=True, padding=(0, 1))
+
+        top.add_column(ratio=1)
+        top.add_column(ratio=1)
+
+        top.add_row(table, ram_table)
+
+        middle = Table.grid(expand=True, padding=(0, 1))
+
+        middle.add_column(ratio=1)
+        middle.add_column(ratio=1)
+
+        middle.add_row(disk_table, net_table)
+
+        return Group(
+            header,
+            top,
+            middle,
+            pid_table
+        )
+
+    return show_board()
 
 
 def conver_bytes(size):
@@ -124,7 +183,7 @@ def conver_bytes(size):
 
 
 def main():
-    with Live(show_info(),refresh_per_second=1) as live:
+    with Live(show_info(),refresh_per_second=1 , screen= True) as live:
         while True:
             time.sleep(1)
             live.update(show_info())
