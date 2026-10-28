@@ -1,3 +1,5 @@
+import pathlib
+
 import psutil
 import time
 from rich.columns import Columns
@@ -10,6 +12,8 @@ from rich.align import Align
 from rich.console import Group
 import speedtest
 from threading import Event, Lock, Thread
+from pathlib import Path
+
 
 console = Console()
 
@@ -127,9 +131,11 @@ def show_info(ping="Measuring..."):
         border_style="light_sky_blue1" ,
         title_style= "bright_white" ,
     )
+
+
     disk_table.add_column("Component")
     disk_table.add_column("Usage")
-    disk_info = psutil.disk_usage("/System/Volumes/Data")
+    disk_info = psutil.disk_usage(str(Path.home()))
     disk_table.add_row("TOTAL" , f"{disk_info.total / 1024**3:.2f}GB")
     disk_table.add_row("USED" , f"{disk_info.used / 1024**3:.2f}GB")
     disk_table.add_row("FREE" , f"{disk_info.free / 1024**3:.2f}GB")
@@ -172,14 +178,25 @@ def show_info(ping="Measuring..."):
 
 
     def get_ip():
-        ip_addr = psutil.net_if_addrs()
-        for addr in ip_addr.get("en0", []):
-            if addr.family == socket.AF_INET:
-                return addr.address
+        interface = psutil.net_if_addrs()
+        stats = psutil.net_if_stats()
+
+        for name , adresses in interface.items():
+            if name not in stats or stats[name].isup:
+                continue
+
+            for addr in adresses:
+                if addr.family == socket.AF_INET:
+                    if not addr.address.startswith(("127.", "169.254.")):
+                        return addr.address
+
+                    return "Unavailable"
+
 
 
     def get_Download_Speed():
         before = psutil.net_io_counters().bytes_recv
+        time.sleep(2)
         after = psutil.net_io_counters().bytes_recv
         total_speed = (after - before) / 3 / 1_000_000
         return f"{total_speed:.2f} Mb/s"
