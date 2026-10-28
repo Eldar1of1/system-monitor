@@ -1,5 +1,3 @@
-
-
 import psutil
 import time
 from rich.columns import Columns
@@ -10,8 +8,57 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.align import Align
 from rich.console import Group
+import speedtest
+from threading import Event, Lock, Thread
 
 console = Console()
+
+
+class PingMonitor:
+
+    def __init__(self, interval=10):
+        self.interval = interval
+        self._value = "Measuring..."
+        self._lock = Lock()
+        self._stop = Event()
+        self._thread = Thread(target=self._run, daemon=True)
+
+    @property
+    def value(self):
+        with self._lock:
+            return self._value
+
+    def start(self):
+        self._thread.start()
+
+    def close(self):
+        self._stop.set()
+        self._thread.join(timeout=0.1)
+
+    def _run(self):
+        while not self._stop.is_set():
+            try:
+                test = speedtest.Speedtest(
+                    secure=True, timeout=3, shutdown_event=self._stop
+                )
+                test.get_best_server()
+                value = f"{test.results.ping:.2f} ms"
+            except Exception:
+                value = "Unavailable (retrying...)"
+
+            with self._lock:
+                self._value = value
+
+            if self._stop.wait(self.interval):
+                break
+
+
+def measure(name , func):
+    start = time.perf_counter()
+    result = func()
+    elapsed = time.perf_counter() - start
+    print(f"{name}: {elapsed:.3f} секунд")
+    return result
 
 
 def usage_bar(percent, width=20):
@@ -30,8 +77,11 @@ def usage_bar(percent, width=20):
             f"[bold white]{percent:.1f}%"
             )
 
-def show_info():
+def show_info(ping="Measuring..."):
+
     top = Columns([])
+
+
     header = Panel(
         Align.center("[bright_white]System Information[/bright_white]"),
         border_style="bright_black",
@@ -130,7 +180,6 @@ def show_info():
 
     def get_Download_Speed():
         before = psutil.net_io_counters().bytes_recv
-        time.sleep(3)
         after = psutil.net_io_counters().bytes_recv
         total_speed = (after - before) / 3 / 1_000_000
         return f"{total_speed:.2f} Mb/s"
@@ -143,6 +192,8 @@ def show_info():
     net_table.add_row("DOWNLOAD SPEED" , f"{get_Download_Speed()}") # Download Speed
     net_table.add_row("BYTES SENT" , f"{conver_bytes(net.bytes_sent)}")
     net_table.add_row("BYTES RECEIVED" , f"{conver_bytes(net.bytes_recv)}")
+    net_table.add_row("PING", ping)
+    #net_table.add_row("SPEED" , show_dowln_speed())
 
 
 
@@ -183,10 +234,17 @@ def conver_bytes(size):
 
 
 def main():
-    with Live(show_info(),refresh_per_second=1 , screen= True) as live:
-        while True:
-            time.sleep(1)
-            live.update(show_info())
+    ping = PingMonitor()
+    ping.start()
+    try:
+        with Live(show_info(ping.value), refresh_per_second=1, screen=True) as live:
+            while True:
+                time.sleep(3)
+                live.update(show_info(ping.value))
+    except KeyboardInterrupt:
+        pass
+    finally:
+        ping.close()
 
 
 
