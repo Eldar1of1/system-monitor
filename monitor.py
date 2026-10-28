@@ -135,6 +135,7 @@ def show_info(ping="Measuring..."):
 
     disk_table.add_column("Component")
     disk_table.add_column("Usage")
+
     disk_info = psutil.disk_usage(str(Path.home()))
     disk_table.add_row("TOTAL" , f"{disk_info.total / 1024**3:.2f}GB")
     disk_table.add_row("USED" , f"{disk_info.used / 1024**3:.2f}GB")
