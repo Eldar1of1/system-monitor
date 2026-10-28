@@ -40,7 +40,7 @@ System Monitor is a lightweight terminal-based application that displays importa
 
 **4. Run the application**
 
-`python3 main.py`
+`python3 monitor.py`
 
 *Replace main.py with your script's filename if different.*
 
